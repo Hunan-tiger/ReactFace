@@ -9,3 +9,4 @@ test.csv
 *.safetensors
 *.bin
 *.h5
+*.sh
