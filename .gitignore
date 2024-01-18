@@ -10,3 +10,4 @@ test.csv
 *.bin
 *.h5
 *.sh
+.out
