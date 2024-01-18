@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#SBATCH -J react  ##任务名称(自定)
-#SBATCH -o /home_data/home/v-lijm/projects/react/react%j.out   ##指定作业标准输出文件路径，job_%j.out（%j表示作业号）
-#SBATCH -e /home_data/home/v-lijm/projects/react/react%j_err.out   ##指定作业报错信息输出文件路径
+#SBATCH -J reactface  ##任务名称(自定)
+#SBATCH -o /home_data/home/v-lijm/projects/ReactFace/reactface%j.out   ##指定作业标准输出文件路径，job_%j.out（%j表示作业号）
+#SBATCH -e /home_data/home/v-lijm/projects/ReactFace/reactface%j_err.out   ##指定作业报错信息输出文件路径
 
 #SBATCH -p bme_gpu  ##指定作业分区，可以选bme_gpu bme_cpu bme_quick bme_cpu_small
 #SBATCH -t 60:00:00   ##最长运行时间 (2-12:00:00)
