@@ -96,7 +96,6 @@ def train(args, model, train_loader, optimizer, criterion):
 
 
 
-
 # Train
 def val(args, model, val_loader, criterion, render, epoch):
     losses = AverageMeter()
