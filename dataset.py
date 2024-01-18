@@ -230,67 +230,8 @@ class ReactionDataset(data.Dataset):
             video = np.load(listener_video_path)
             listener_reference = video[0]
 
-        listener_neighbour_3d = 0
-        listener_neighbour_emotion = 0
-        if self.load_neighbour_matrix:
-            # n_lines = self.neighbour_matrix.shape[0]
-            speaker_line = self.neighbour_matrix[index]
-            speaker_line_index = np.argwhere(speaker_line == 1).reshape(-1)
-            speaker_line_index_len = len(speaker_line_index)
-            speaker_line_index_len = min(speaker_line_index_len, 80)
-            listener_neighbour_3d = []
-            listener_neighbour_emotion = []
 
-            for k in range(80):
-                if k < speaker_line_index_len:
-                    speaker_neighbour_index = speaker_line_index[k]
-                    corresponding_listener_3dmm = torch.FloatTensor(
-                        np.load(self.data_list[speaker_neighbour_index]['listener_3dmm_path'])).squeeze()
-                    corresponding_listener_3dmm = corresponding_listener_3dmm[cp: cp + self._clip_length]
-                    corresponding_listener_3dmm = self._transform_3dmm(corresponding_listener_3dmm)[0]
-
-                    corresponding_listener_emotion_path = self.data_list[speaker_neighbour_index][
-                        f'{listener_prefix}_emotion_path']
-                    corresponding_listener_emotion = pd.read_csv(corresponding_listener_emotion_path, header=None,
-                                                                 delimiter=',')
-                    corresponding_listener_emotion = torch.from_numpy(
-                        np.array(corresponding_listener_emotion.drop(0)).astype(np.float32))[
-                                                     cp: cp + self._clip_length]
-
-                else:
-                    if self.load_3dmm_l:
-                        corresponding_listener_3dmm = torch.zeros_like(listener_3dmm).float() + 1e5
-                    elif self.load_3dmm_s:
-                        corresponding_listener_3dmm = torch.zeros_like(speaker_3dmm).float() + 1e5
-                    else:
-                        corresponding_listener_3dmm = torch.FloatTensor(
-                            np.load(self.data_list[0]['listener_3dmm_path'])).squeeze()
-                        corresponding_listener_3dmm = corresponding_listener_3dmm[cp: cp + self._clip_length]
-                        corresponding_listener_3dmm = self._transform_3dmm(corresponding_listener_3dmm)[0]
-                        corresponding_listener_3dmm = torch.zeros_like(corresponding_listener_3dmm).float() + 1e5
-
-                    if self.load_emotion_l:
-                        corresponding_listener_emotion = torch.zeros_like(listener_emotion).float() + 1e5
-                    elif self.load_emotion_s:
-                        corresponding_listener_emotion = torch.zeros_like(speaker_emotion).float() + 1e5
-                    else:
-
-                        corresponding_listener_emotion_path = self.data_list[0][
-                            f'{listener_prefix}_emotion_path']
-                        corresponding_listener_emotion = pd.read_csv(corresponding_listener_emotion_path, header=None,
-                                                                     delimiter=',')
-                        corresponding_listener_emotion = torch.from_numpy(
-                            np.array(corresponding_listener_emotion.drop(0)).astype(np.float32))[
-                                                         cp: cp + self._clip_length]
-                        corresponding_listener_emotion = torch.zeros_like(corresponding_listener_emotion).float() + 1e5
-
-                listener_neighbour_3d.append(corresponding_listener_3dmm.unsqueeze(0))
-                listener_neighbour_emotion.append(corresponding_listener_emotion.unsqueeze(0))
-
-            listener_neighbour_3d = torch.cat(listener_neighbour_3d, dim=0)
-            listener_neighbour_emotion = torch.cat(listener_neighbour_emotion, dim=0)
-
-        return speaker_video_clip, speaker_audio_clip, speaker_emotion, speaker_3dmm, listener_video_clip, listener_audio_clip, listener_emotion, listener_3dmm, listener_reference, listener_neighbour_3d, listener_neighbour_emotion, listener_video_path
+        return speaker_video_clip, speaker_audio_clip, speaker_emotion, speaker_3dmm, listener_video_clip, listener_audio_clip, listener_emotion, listener_3dmm, listener_reference
 
     def __len__(self):
         return self._len

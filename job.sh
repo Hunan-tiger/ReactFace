@@ -17,8 +17,8 @@ echo start on $(date)    ##显示作业开始时间
 ## nvidia-smi   ##显示gpu信息   watch -n 1 nvidia-smi
 
 source /home_data/home/v-lijm/anaconda3/etc/profile.d/conda.sh     ##改成自己的conda.sh路径
-conda activate react
 
+conda activate reactface
 cd /home_data/home/v-lijm/projects/ReactFace    ##工作目录
 ## 离线任务
 python train.py --batch-size 4 --gpu-ids 0 -lr 0.00001 --kl-p 0.00001 -e 50 -j 12 --outdir results/train_offline

@@ -58,16 +58,15 @@ def train(args, model, train_loader, optimizer, criterion):
     div_losses = AverageMeter()
     sm_losses = AverageMeter()
     model.train()
-    for batch_idx, (speaker_video_clip, speaker_audio_clip, _, speaker_3dmm, _, _, _, _, _, listener_3dmm_neighbour, listener_emotion_neighbour, _) in enumerate(tqdm(train_loader)):
+    for batch_idx, (speaker_video_clip, speaker_audio_clip, _, speaker_3dmm, _, _, listener_emotion, listener_3dmm, _) in enumerate(tqdm(train_loader)):
         if torch.cuda.is_available():
-            speaker_video_clip, speaker_audio_clip, speaker_3dmm, listener_emotion_neighbour, listener_3dmm_neighbour = \
-                speaker_video_clip.cuda(), speaker_audio_clip.cuda(), speaker_3dmm.cuda(), listener_emotion_neighbour.cuda(), listener_3dmm_neighbour.cuda()
+            speaker_video_clip, speaker_audio_clip, listener_emotion, listener_3dmm, speaker_3dmm = \
+                speaker_video_clip.cuda(), speaker_audio_clip.cuda(),listener_emotion.cuda(), listener_3dmm.cuda(), speaker_3dmm.cuda()
 
         optimizer.zero_grad()
         listener_3dmm_out, listener_emotion_out, distribution, speaker_3dmm_out = model(speaker_video_clip, speaker_audio_clip, True)
 
-        loss, rec_loss, kld_loss = criterion[-1](listener_emotion_neighbour, listener_3dmm_neighbour, listener_emotion_out, listener_3dmm_out,
-                                             distribution)
+        loss, rec_loss, kld_loss = criterion[0](listener_emotion, listener_3dmm, listener_emotion_out, listener_3dmm_out, distribution)
 
 
         speaker_rec_loss = criterion[-2](speaker_3dmm, speaker_3dmm_out)
@@ -106,7 +105,7 @@ def val(args, model, val_loader, criterion, render, epoch):
     model.eval()
     model.reset_window_size(8)
     # model.module.reset_window_size(8)
-    for batch_idx, (speaker_video_clip, speaker_audio_clip, _, _, _, _, listener_emotion, listener_3dmm, listener_references, _, _, _) in enumerate(tqdm(val_loader)):
+    for batch_idx, (speaker_video_clip, speaker_audio_clip, _, _, _, _, listener_emotion, listener_3dmm, listener_references) in enumerate(tqdm(val_loader)):
         if torch.cuda.is_available():
             speaker_video_clip, speaker_audio_clip, listener_emotion, listener_3dmm, listener_references = \
                 speaker_video_clip.cuda(), speaker_audio_clip.cuda(), listener_emotion.cuda(), listener_3dmm.cuda(), listener_references.cuda()
@@ -140,7 +139,7 @@ def main(args):
     train_loader = get_dataloader(args, "train", load_audio=True, load_video_s=True,  load_emotion_l=False, load_3dmm_s=True, load_3dmm_l=False, load_neighbour_matrix = True)
     val_loader = get_dataloader(args, "val", load_audio=True, load_video_s=True,  load_emotion_l=True, load_3dmm_l=True, load_ref=True)
     model = ReactFace(img_size = args.img_size, output_3dmm_dim = args._3dmm_dim, output_emotion_dim = args.emotion_dim, feature_dim = args.feature_dim, max_seq_len = args.max_seq_len, window_size = args.window_size, device = args.device)
-    criterion = [VAELoss(args.kl_p).cuda(), DivLoss(), SmoothLoss(), nn.SmoothL1Loss(reduce=True, size_average=True), NeighbourLoss(args.kl_p).cuda()]
+    criterion = [VAELoss(args.kl_p).cuda(), DivLoss(), SmoothLoss(), nn.SmoothL1Loss(reduce=True, size_average=True)]
 
     optimizer = optim.AdamW(model.parameters(), betas=(0.9, 0.999), lr=args.learning_rate, weight_decay=args.weight_decay)
     if args.resume != '':
