@@ -444,3 +444,10 @@ class ReactFace(nn.Module):
     def reset_window_size(self, window_size):
         self.window_size = window_size
         self.listener_reaction_decoder.reset_window_size(window_size)
+
+if __name__ == "__main__":
+    video = torch.randn(2, 256, 3, 224, 224)
+    audio = torch.randn(2, 256, 78)
+    f = ReactFace(img_size=224, output_3dmm_dim = 58, output_emotion_dim = 25, feature_dim = 128, max_seq_len=751, window_size = 8, device = 'cuda')
+    dmm3, emo, dist = f(video, audio)
+    print(dmm3.shape, emo.shape, len(dist))

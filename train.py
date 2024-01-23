@@ -11,7 +11,7 @@ from dataset import ReactionDataset
 from model import ReactFace
 from utils import AverageMeter
 from render import Render
-from model.losses import VAELoss, DivLoss, SmoothLoss, NeighbourLoss
+from model.losses import VAELoss, DivLoss, SmoothLoss
 from dataset import get_dataloader
 
 def parse_arg():
@@ -38,6 +38,7 @@ def parse_arg():
     parser.add_argument('--_3dmm_dim', default=58, type=int, help="feature dim of 3dmm")
     parser.add_argument('--emotion-dim', default=25, type=int, help="feature dim of emotion")
     parser.add_argument('--online', action='store_true', help='online / offline method')
+    parser.add_argument('--render', action='store_true', help='w/ or w/o render')
     parser.add_argument('--momentum', type=float, default=0.99)
     parser.add_argument('--outdir', default="./results", type=str, help="result dir")
     parser.add_argument('--device', default='cuda', type=str, help="device: cuda / cpu")
@@ -64,13 +65,11 @@ def train(args, model, train_loader, optimizer, criterion):
                 speaker_video_clip.cuda(), speaker_audio_clip.cuda(),listener_emotion.cuda(), listener_3dmm.cuda(), speaker_3dmm.cuda()
 
         optimizer.zero_grad()
-        listener_3dmm_out, listener_emotion_out, distribution, speaker_3dmm_out = model(speaker_video_clip, speaker_audio_clip, True)
+        listener_3dmm_out, listener_emotion_out, distribution, speaker_3dmm_out = model(speaker_video_clip, speaker_audio_clip, True) ## torch.Size([4, 256, 58]) torch.Size([4, 256, 25]) 32 torch.Size([4, 256, 58])
 
         loss, rec_loss, kld_loss = criterion[0](listener_emotion, listener_3dmm, listener_emotion_out, listener_3dmm_out, distribution)
 
-
-        speaker_rec_loss = criterion[-2](speaker_3dmm, speaker_3dmm_out)
-
+        speaker_rec_loss = criterion[-1](speaker_3dmm, speaker_3dmm_out)
 
         listener_3dmm_out_2, listener_emotion_out_2, _ = model(speaker_video_clip, speaker_audio_clip)
         listener_3dmm_out_3, listener_emotion_out_3, _ = model(speaker_video_clip, speaker_audio_clip)
@@ -118,14 +117,14 @@ def val(args, model, val_loader, criterion, render, epoch):
             rec_losses.update(rec_loss.data.item(), speaker_video_clip.size(0))
             kld_losses.update(kld_loss.data.item(), speaker_video_clip.size(0))
 
-            # if args.rendering:
-            val_path = os.path.join(args.outdir, 'results_videos', 'val')
-            if not os.path.exists(val_path):
-                os.makedirs(val_path)
-            B = speaker_video_clip.shape[0]
-            if (batch_idx % 50) == 0:
-                for bs in range(B):
-                    render.rendering(val_path, "e{}_b{}_ind{}".format(str(epoch + 1), str(batch_idx + 1), str(bs + 1)),
+            if args.render:
+                val_path = os.path.join(args.outdir, 'results_videos', 'val')
+                if not os.path.exists(val_path):
+                    os.makedirs(val_path)
+                B = speaker_video_clip.shape[0]
+                if (batch_idx % 50) == 0:
+                    for bs in range(B):
+                        render.rendering(val_path, "e{}_b{}_ind{}".format(str(epoch + 1), str(batch_idx + 1), str(bs + 1)),
                             listener_3dmm_out[bs], speaker_video_clip[bs], listener_references[bs])
     model.reset_window_size(args.window_size)
     # model.module.reset_window_size(args.window_size)
@@ -135,7 +134,7 @@ def val(args, model, val_loader, criterion, render, epoch):
 def main(args):
     start_epoch = 0
     lowest_val_loss = 10000
-    train_loader = get_dataloader(args, "train", load_audio=True, load_video_s=True,  load_emotion_l=False, load_3dmm_s=True, load_3dmm_l=False, load_neighbour_matrix = True)
+    train_loader = get_dataloader(args, "train", load_audio=True, load_video_s=True,  load_emotion_l=True, load_3dmm_s=True, load_3dmm_l=True)
     val_loader = get_dataloader(args, "val", load_audio=True, load_video_s=True,  load_emotion_l=True, load_3dmm_l=True, load_ref=True)
     model = ReactFace(img_size = args.img_size, output_3dmm_dim = args._3dmm_dim, output_emotion_dim = args.emotion_dim, feature_dim = args.feature_dim, max_seq_len = args.max_seq_len, window_size = args.window_size, device = args.device)
     criterion = [VAELoss(args.kl_p).cuda(), DivLoss(), SmoothLoss(), nn.SmoothL1Loss(reduce=True, size_average=True)]
@@ -172,15 +171,6 @@ def main(args):
                 if not os.path.exists(args.outdir):
                     os.makedirs(args.outdir)
                 torch.save(checkpoint, os.path.join(args.outdir, 'best_checkpoint.pth'))
-
-            checkpoint = {
-                'epoch': epoch+1,
-                'state_dict': model.state_dict(),
-                'optimizer': optimizer.state_dict(),
-            }
-            if not os.path.exists(args.outdir):
-                os.makedirs(args.outdir)
-            torch.save(checkpoint, os.path.join(args.outdir, '{}_checkpoint.pth'.format(epoch+1)))
 
         checkpoint = {
             'epoch': epoch + 1,

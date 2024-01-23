@@ -105,10 +105,6 @@ class ReactionDataset(data.Dataset):
         self.load_ref = load_ref
         self.load_neighbour_matrix = load_neighbour_matrix
 
-        if self.load_neighbour_matrix:
-            self.neighbour_matrix = np.load(
-                os.path.join(self._root_path, 'neighbour_emotion_' + str(self._split) + '.npy'))
-
         self._audio_path = os.path.join(self._data_path, 'Audio_files')     ## react_2024/train/Audio_files
         # self._video_path = os.path.join(self._data_path, 'Video_files')
         self._video_path = os.path.join(self._root_path, 'video_data')    ##  设置video文件路径
@@ -189,8 +185,8 @@ class ReactionDataset(data.Dataset):
         listener_audio_clip, speaker_audio_clip = 0, 0
         if self.load_audio:
             speaker_audio_path = data[f'{speaker_prefix}_audio_path']
-            speech_array, sampling_rate = librosa.load(speaker_audio_path, sr=16000)
-            interval = sampling_rate // self._fps
+            speech_array, sampling_rate = librosa.load(speaker_audio_path, sr=16000)## 重采样到16KHz
+            interval = sampling_rate // self._fps  ## 每帧的采样数，为处理音频和视频同步
             speaker_audio_clip = torch.FloatTensor(
                 np.squeeze(self.processor(speech_array, sampling_rate=16000).input_values))
             speaker_audio_clip = speaker_audio_clip[int(cp * interval): int((cp + self._clip_length) * interval)]
